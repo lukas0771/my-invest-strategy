@@ -62,8 +62,33 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .select, input { background: var(--panel2); color: var(--text); border: 1px solid var(--border);
   border-radius: 6px; padding: 6px 8px; font-size: 13px; margin-bottom: 8px; }
 .input-sm { width: 110px; }
+/* 行情指数条（LangAlpha 风格顶部常驻） */
+.ticker { display: flex; gap: 10px; overflow-x: auto; padding: 0 0 12px; }
+.ticker-item { background: var(--panel); border: 1px solid var(--border); border-radius: 9px;
+  padding: 7px 14px; min-width: 118px; flex: none; cursor: pointer; }
+.ticker-item:hover { border-color: var(--accent); }
+.ticker-item .tn { color: var(--muted); font-size: 11.5px; }
+.ticker-item .tc { font-size: 15px; font-weight: 600; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.ticker-item .tg { font-size: 12px; font-variant-numeric: tabular-nums; }
+.ticker-item .tdate { color: var(--muted); font-size: 10.5px; }
+
+/* 侧栏分组 */
+.nav-group { color: var(--muted); font-size: 11px; letter-spacing: 2px;
+  padding: 12px 12px 4px; text-transform: uppercase; }
+.nav-group:first-child { padding-top: 0; }
+
+/* 国内配色习惯：红涨绿跌 */
+.pos { color: #e05656; } .neg { color: #2fbf71; } .warn { color: var(--amber); }
+
 .notes li { margin: 6px 0 6px 18px; color: var(--text); }
 .muted { color: var(--muted); } .small { font-size: 12px; }
+
+/* 新闻 */
+.nw-item { padding: 9px 0; border-bottom: 1px solid #16202b; }
+.nw-item:last-child { border-bottom: none; }
+.nw-title { color: var(--text); font-size: 13.5px; }
+.nw-meta { color: var(--muted); font-size: 11.5px; margin-top: 3px; }
+.nw-sum { color: var(--muted); font-size: 12.5px; margin-top: 3px; line-height: 1.5; }
 
 /* 数据源健康面板 */
 .src-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid #16202b; }

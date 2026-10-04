@@ -34,9 +34,26 @@ $("#nav").addEventListener("click", async (e) => {
   $("#tab-" + e.target.dataset.tab).classList.add("active");
   const renderers = { overview: renderOverview, valuation: renderValuation, trend: renderTrend,
     flows: renderFlows, macro: renderMacro, strategy: renderStrategy,
-    portfolio: renderPortfolio, backtest: renderBacktest, report: renderReport };
+    portfolio: renderPortfolio, backtest: renderBacktest, report: renderReport,
+    news: renderNews, watchlist: renderWatchlist, automation: renderAutomation };
+  renderTicker();
   try { await renderers[e.target.dataset.tab](); } catch (err) { alert(err.message); }
 });
+
+/* ---------------- 行情指数条 ---------------- */
+let TICKER_DATA = null;
+async function renderTicker() {
+  try {
+    const d = await api("/api/ticker");
+    TICKER_DATA = d.ticker;
+    $("#ticker").innerHTML = d.ticker.map(t => `
+      <div class="ticker-item" onclick="switchTab('trend')">
+        <div class="tn">${t.name} <span class="tdate">${t.date}</span></div>
+        <div class="tc">${t.close.toLocaleString()}</div>
+        <div class="tg ${cls(t.chg)}">${t.chg >= 0 ? "▲" : "▼"} ${Math.abs(t.chg).toFixed(2)}%</div>
+      </div>`).join("");
+  } catch { $("#ticker").innerHTML = ""; }
+}
 
 /* ---------------- 总览 ---------------- */
 const ROLE = { core: "核心", defensive: "防守", industry: "行业卫星", region: "国别卫星", cash: "现金" };
@@ -133,12 +150,28 @@ async function renderTrend() {
   sel.innerHTML = trend.map(t => `<option value="${t.key}">${t.name}</option>`).join("");
   const draw = () => {
     const t = trend.find(x => x.key === sel.value);
-    chart("tr-chart").setOption({ backgroundColor: "transparent", tooltip: { trigger: "axis" },
+    const c = chart("tr-chart");
+    const base = { backgroundColor: "transparent", tooltip: { trigger: "axis" },
       legend: { textStyle: { color: "#7d8b9c" }, top: 0 },
-      xAxis: { type: "time", ...AXIS }, yAxis: { type: "value", scale: true, ...AXIS },
-      series: [
-        { name: "收盘价", type: "line", showSymbol: false, data: t.series.map(r => [r[0], r[1]]), lineStyle: { color: "#4cc9f0" } },
-        { name: "200日均线", type: "line", showSymbol: false, data: t.series.map(r => [r[0], r[2]]), lineStyle: { color: "#f5a524" } }] });
+      xAxis: { type: "category", data: t.kline.dates, ...AXIS },
+      yAxis: { type: "value", scale: true, ...AXIS },
+      dataZoom: [{ type: "inside", start: 55, end: 100 }, { type: "slider", start: 55, end: 100, height: 18, bottom: 4 }],
+      grid: { left: 60, right: 20, top: 30, bottom: 46 } };
+    if (t.kline.mode === "candle") {
+      base.series = [
+        { name: "K线", type: "candlestick", data: t.kline.kline,
+          itemStyle: { color: "#e05656", color0: "#2fbf71", borderColor: "#e05656", borderColor0: "#2fbf71" } },
+        { name: "MA20", type: "line", data: t.kline.ma20, showSymbol: false, lineStyle: { color: "#f5a524", width: 1 } },
+        { name: "MA60", type: "line", data: t.kline.ma60, showSymbol: false, lineStyle: { color: "#4cc9f0", width: 1 } },
+        { name: "MA200", type: "line", data: t.kline.ma200, showSymbol: false, lineStyle: { color: "#b388ff", width: 1.4 } }];
+    } else {
+      base.series = [
+        { name: "收盘价", type: "line", showSymbol: false, data: t.kline.line, lineStyle: { color: "#4cc9f0" } },
+        { name: "MA20", type: "line", data: t.kline.ma20, showSymbol: false, lineStyle: { color: "#f5a524", width: 1 } },
+        { name: "MA60", type: "line", data: t.kline.ma60, showSymbol: false, lineStyle: { color: "#26c6da", width: 1 } },
+        { name: "MA200", type: "line", data: t.kline.ma200, showSymbol: false, lineStyle: { color: "#b388ff", width: 1.4 } }];
+    }
+    c.setOption(base, true);
   };
   sel.onchange = draw; draw();
 }
@@ -148,7 +181,9 @@ async function renderFlows() {
   const [d, sys] = await Promise.all([api("/api/flows"), api("/api/system")]);
   if (d.margin_index.length) {
     chart("fl-margin").setOption({ backgroundColor: "transparent", tooltip: { trigger: "axis" },
-      xAxis: { type: "time", ...AXIS }, yAxis: { type: "value", scale: true, ...AXIS },
+      grid: { left: 80, right: 16 },
+      xAxis: { type: "time", ...AXIS }, yAxis: { type: "value", scale: true, ...AXIS,
+        axisLabel: { color: "#7d8b9c", formatter: (v) => (v / 100000000).toFixed(1) + "亿" } },
       series: [{ type: "line", name: "两融余额指数", showSymbol: false, data: d.margin_index,
         lineStyle: { color: "#4cc9f0" }, areaStyle: { opacity: 0.08 } }] });
   } else {
@@ -371,6 +406,84 @@ $("#btn-refresh")?.addEventListener("click", async () => {
     $("#refresh-status").textContent = s.running ? `运行中… (${s.log.length} 步)` :
       `完成 ${s.finished || ""}`;
     if (!s.running) { clearInterval(timer); renderOverview(); }
+  }, 3000);
+});
+
+/* ---------------- 新闻 ---------------- */
+function newsListHtml(items) {
+  if (!items || !items.length) return '<p class="muted">暂无新闻数据（数据源不可用或未刷新）。</p>';
+  return items.map(n => `<div class="nw-item">
+    <div class="nw-title">${n.title}</div>
+    <div class="nw-sum">${n.summary}</div>
+    <div class="nw-meta">${n.time} · ${n.source}</div></div>`).join("");
+}
+async function renderNews() {
+  const d = await api("/api/news");
+  $("#nw-src").textContent = d.source ? `财经新闻（来源：${d.source}）` : "财经新闻";
+  $("#nw-list").innerHTML = newsListHtml(d.items);
+  $("#ov-news").innerHTML = newsListHtml((d.items || []).slice(0, 5)) ||
+    '<p class="muted">暂无数据</p>';
+}
+
+/* ---------------- 自选清单 ---------------- */
+function renderWatchlistTable(d) {
+  $("#wl-table").innerHTML = d.rows.length ?
+    `<table><tr><th>代码</th><th>名称</th><th>最新价/净值</th><th>近1月</th><th>QDII溢价</th><th>日期</th><th></th></tr>` +
+    d.rows.map(r => `<tr><td><b>${r.code}</b></td><td>${r.name || "—"}</td>
+      <td class="num">${r.price ?? "—"}</td>
+      <td class="num ${cls(r.chg1m)}">${r.chg1m === null ? "—" : r.chg1m + "%"}</td>
+      <td class="num">${r.premium === null ? "—" :
+        `<span class="badge ${r.premium > 3 ? "b-extreme" : "b-low"}">${r.premium}%</span>`}</td>
+      <td class="muted">${r.price_date || "—"}</td>
+      <td><button class="btn danger" data-wdel="${r.code}">删</button></td></tr>`).join("") + "</table>" :
+    '<p class="muted">还没有自选，添加一个基金/ETF 代码试试。</p>';
+  $$("#wl-table [data-wdel]").forEach(el => el.addEventListener("click", async () => {
+    const d2 = await api("/api/watchlist/" + el.dataset.wdel, { method: "DELETE" });
+    renderWatchlistTable(d2);
+  }));
+}
+async function renderWatchlist() {
+  const d = await api("/api/watchlist");
+  renderWatchlistTable(d);
+}
+$("#wl-add")?.addEventListener("click", async () => {
+  const code = $("#wl-code").value.trim(), name = $("#wl-name").value.trim();
+  if (!/^\d{6}$/.test(code)) { $("#wl-status").textContent = "请输入 6 位数字代码"; return; }
+  $("#wl-status").textContent = "添加中…";
+  try {
+    const d = await api("/api/watchlist", { method: "POST",
+      headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code, name }) });
+    renderWatchlistTable(d);
+    $("#wl-code").value = ""; $("#wl-name").value = ""; $("#wl-status").textContent = "✓ 已添加";
+  } catch (e) { $("#wl-status").textContent = e.message; }
+});
+
+/* ---------------- 自动化 ---------------- */
+async function renderAutomation() {
+  const d = await api("/api/automation");
+  const okCnt = d.log.filter(l => l.status === "ok").length;
+  const failCnt = d.log.filter(l => l.status === "fail").length;
+  $("#au-cards").innerHTML = `
+    <div class="card-kpi"><div class="k">每日定时刷新</div>
+      <div class="v ${d.scheduler.enabled ? "good" : "warn"}" style="font-size:15px">
+        ${d.scheduler.enabled ? "已启用 · 下次 " + (d.scheduler.next_run || "").slice(0, 16) : "未启用（DISABLE_SCHEDULER=1）"}</div></div>
+    <div class="card-kpi"><div class="k">最近刷新</div><div class="v" style="font-size:14px">${d.last_refresh || "—"}</div></div>
+    <div class="card-kpi"><div class="k">日志成功/失败</div><div class="v">${okCnt} <span class="neg" style="font-size:15px">/ ${failCnt}</span></div></div>`;
+  $("#au-log").innerHTML = d.log.length ?
+    `<table><tr><th>时间</th><th>来源</th><th>目标</th><th>状态</th><th>详情</th></tr>` +
+    d.log.map(l => `<tr><td class="muted">${(l.ts || "").slice(5, 16)}</td><td>${l.source}</td>
+      <td>${l.target}</td>
+      <td>${l.status === "ok" ? '<span class="pos">✓ ok</span>' : l.status === "skip" ? '<span class="muted">skip</span>' : '<span class="neg">✗ fail</span>'}</td>
+      <td class="muted small">${l.detail}</td></tr>`).join("") + "</table>" :
+    '<p class="muted">暂无日志。</p>';
+}
+$("#au-run")?.addEventListener("click", async () => {
+  await api("/api/refresh", { method: "POST" });
+  $("#au-status").textContent = "刷新已启动…";
+  const timer = setInterval(async () => {
+    const s = await api("/api/refresh/status");
+    $("#au-status").textContent = s.running ? `运行中…` : "完成 " + (s.finished || "");
+    if (!s.running) { clearInterval(timer); renderAutomation(); }
   }, 3000);
 });
 

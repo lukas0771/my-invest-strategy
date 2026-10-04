@@ -12,15 +12,22 @@
   <aside class="sidebar">
     <div class="brand"><h1>四维信号</h1><p>核心-卫星 · 打分卡系统</p></div>
     <nav id="nav">
+      <div class="nav-group">工作台</div>
       <a data-tab="overview" class="active">📊 策略总览</a>
+      <a data-tab="strategy">🎯 当前策略</a>
+      <a data-tab="portfolio">📁 持仓跟踪</a>
+      <a data-tab="backtest">🧪 历史回测</a>
+      <div class="nav-group">市场</div>
+      <a data-tab="news">📰 财经新闻</a>
+      <a data-tab="watchlist">⭐ 自选清单</a>
+      <div class="nav-group">信号</div>
       <a data-tab="valuation">🌡️ 估值温度</a>
       <a data-tab="trend">📈 趋势与动量</a>
       <a data-tab="flows">💰 资金面</a>
       <a data-tab="macro">🌍 宏观仪表</a>
-      <a data-tab="strategy">🎯 当前策略</a>
-      <a data-tab="portfolio">📁 持仓跟踪</a>
-      <a data-tab="backtest">🧪 历史回测</a>
       <a data-tab="report">📄 信号报告</a>
+      <div class="nav-group">系统</div>
+      <a data-tab="automation">⚙️ 自动化</a>
     </nav>
     <div class="sidebar-foot">
       <button id="btn-refresh" class="btn">↻ 刷新数据</button>
@@ -29,6 +36,8 @@
   </aside>
 
   <main id="main">
+    <div id="ticker" class="ticker"></div>
+
     <!-- 总览 -->
     <section id="tab-overview" class="tab active">
       <div class="cards" id="ov-cards"></div>
@@ -40,6 +49,7 @@
           <div id="ov-alerts"></div>
           <div id="ov-sources"></div></div>
       </div>
+      <div class="card"><h3>财经快讯</h3><div id="ov-news"></div></div>
     </section>
 
     <!-- 估值 -->
@@ -56,7 +66,7 @@
         <div class="card"><h3>12-1 月动量排名</h3><div id="tr-mom" class="chart-md"></div></div>
         <div class="card"><h3>200 日均线位置</h3><div class="table-wrap" id="tr-table"></div></div>
       </div>
-      <div class="card"><h3>价格 vs 200日线</h3>
+      <div class="card"><h3>K线与均线</h3>
         <select id="tr-select" class="select"></select>
         <div id="tr-chart" class="chart-lg"></div></div>
     </section>
@@ -64,7 +74,7 @@
     <!-- 资金面 -->
     <section id="tab-flows" class="tab">
       <div class="grid-2">
-        <div class="card"><h3>两融余额指数（3年）</h3><div id="fl-margin" class="chart-md"></div>
+        <div class="card"><h3>两融余额（亿元，3年）</h3><div id="fl-margin" class="chart-md"></div>
           <p class="muted small" id="fl-note"></p></div>
         <div class="card"><h3>量能比（20日/120日均额）</h3><div id="fl-vol" class="chart-md"></div></div>
       </div>
@@ -120,6 +130,33 @@
     <!-- 报告 -->
     <section id="tab-report" class="tab">
       <div class="card"><div id="rp-md" class="md"></div></div>
+    </section>
+
+    <!-- 新闻 -->
+    <section id="tab-news" class="tab">
+      <div class="card"><h3 id="nw-src">财经新闻</h3><div id="nw-list"></div></div>
+    </section>
+
+    <!-- 自选清单 -->
+    <section id="tab-watchlist" class="tab">
+      <div class="card"><h3>添加自选（6 位基金/ETF 代码）</h3>
+        <div class="row-actions">
+          <input id="wl-code" class="input-sm" placeholder="如 110020 / 513100" maxlength="6">
+          <input id="wl-name" class="input-sm" placeholder="备注名称(可选)" maxlength="20">
+          <button id="wl-add" class="btn primary">+ 添加</button>
+          <span id="wl-status" class="muted small"></span>
+        </div></div>
+      <div class="card"><h3>我的自选</h3><div class="table-wrap" id="wl-table"></div>
+        <p class="muted small">净值/价格来自本地数据库（点左下「刷新数据」更新）；QDII 溢价需 tushare token。</p></div>
+    </section>
+
+    <!-- 自动化 -->
+    <section id="tab-automation" class="tab">
+      <div class="cards" id="au-cards"></div>
+      <div class="card"><h3>刷新任务（手动触发，后台执行）</h3>
+        <div class="row-actions"><button id="au-run" class="btn primary">▶ 立即刷新数据</button>
+          <span id="au-status" class="muted small"></span></div></div>
+      <div class="card"><h3>执行日志（最近 120 条）</h3><div class="table-wrap" id="au-log"></div></div>
     </section>
   </main>
 </div>

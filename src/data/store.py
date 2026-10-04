@@ -186,6 +186,9 @@ def load_macro(series: str, cutoff: str | None = None) -> pd.Series:
     df = read_df("macro_series", f"series='{series}'", order="period")
     if df.empty:
         return pd.Series(dtype=float)
+    # 兼容 YYYYMM（tushare）与 YYYY-MM 两种 period 格式
+    df["period"] = df["period"].astype(str).map(
+        lambda p: f"{p[:4]}-{p[4:6]}" if len(p) == 6 and p.isdigit() else p)
     s = df.set_index("period")["value"].astype(float)
     s.index = pd.to_datetime(s.index)
     s = s.sort_index()

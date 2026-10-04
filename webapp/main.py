@@ -240,6 +240,25 @@ def api_valuation():
     return {"valuation": out}
 
 
+def _kline_data(close: pd.Series, px_df: pd.DataFrame, has_ohlc: bool,
+                bars: int = 250) -> dict:
+    """K线数据：A股指数有完整 OHLC → candlestick；全球指数只有 close → line。
+    附 MA20/60/200。"""
+    df = px_df.sort_values("date").tail(bars)
+    closes = df.set_index("date")["close"].astype(float)
+    ma = {w: closes.rolling(w).mean().round(2) for w in (20, 60, 200)}
+    out = {"mode": "candle" if has_ohlc else "line",
+           "dates": [d.strftime("%Y-%m-%d") for d in df["date"]],
+           "ma20": [None if pd.isna(v) else v for v in ma[20]],
+           "ma60": [None if pd.isna(v) else v for v in ma[60]],
+           "ma200": [None if pd.isna(v) else v for v in ma[200]]}
+    if has_ohlc:
+        out["kline"] = df[["open", "close", "low", "high"]].round(2).values.tolist()
+    else:
+        out["line"] = closes.round(2).tolist()
+    return out
+
+
 @app.get("/api/trend")
 def api_trend():
     assets = []
@@ -252,9 +271,11 @@ def api_trend():
         close = px.set_index("date")["close"].astype(float)
         from src.engine import trend as tr
         score, detail = tr.trend_score(close)
+        has_ohlc = bool(a.ts_index) and "high" in px.columns and px["high"].notna().sum() > 60
         assets.append({"key": a.key, "name": a.name, "trend_score": score,
                        "momentum": detail.get("momentum"), "above_ma200": detail.get("above_ma200"),
-                       "series": _ma200_series(close)})
+                       "series": _ma200_series(close),
+                       "kline": _kline_data(close, px, has_ohlc)})
     assets.sort(key=lambda x: -(x["momentum"] or -9))
     for i, x in enumerate(assets):
         x["momentum_rank"] = i + 1
@@ -271,8 +292,7 @@ def api_flows():
     if not margin.empty:
         s = margin.set_index("trade_date")["rzye"].astype(float)
         s.index = pd.to_datetime(s.index)
-        base = s.iloc[0]
-        margin_series = [[d.strftime("%Y-%m-%d"), round(v / base * 100, 2)]
+        margin_series = [[d.strftime("%Y-%m-%d"), round(v / 1e8, 1)]
                          for d, v in s.last("3Y").items()]
     out_prem = []
     for _, r in prem.iterrows():

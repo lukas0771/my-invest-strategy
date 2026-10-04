@@ -163,7 +163,9 @@ class TushareSource:
                 d = d.dropna(subset=["value"])
             if d.empty:
                 continue
-            out = pd.DataFrame({"series": series, "period": d["month"].astype(str),
+            month = d["month"].astype(str)
+            period = month.map(lambda m: f"{m[:4]}-{m[4:6]}" if len(m) == 6 and "-" not in m else m)
+            out = pd.DataFrame({"series": series, "period": period,
                                 "value": d["value"]})
             total += store.upsert_df("macro_series", out, ["series", "period"])
         return total
