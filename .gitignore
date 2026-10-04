@@ -1,0 +1,10 @@
+.env
+data/*.db
+data/*.db-journal
+data/*.db-shm
+data/*.db-wal
+output/
+__pycache__/
+*.pyc
+.pytest_cache/
+webapp/server.log

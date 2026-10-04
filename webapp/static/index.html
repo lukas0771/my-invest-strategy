@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>四维信号 · 投资策略系统</title>
+<link rel="stylesheet" href="style.css">
+<script src="vendor/echarts.min.js"></script>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand"><h1>四维信号</h1><p>核心-卫星 · 打分卡系统</p></div>
+    <nav id="nav">
+      <a data-tab="overview" class="active">📊 策略总览</a>
+      <a data-tab="valuation">🌡️ 估值温度</a>
+      <a data-tab="trend">📈 趋势与动量</a>
+      <a data-tab="flows">💰 资金面</a>
+      <a data-tab="macro">🌍 宏观仪表</a>
+      <a data-tab="strategy">🎯 当前策略</a>
+      <a data-tab="portfolio">📁 持仓跟踪</a>
+      <a data-tab="backtest">🧪 历史回测</a>
+      <a data-tab="report">📄 信号报告</a>
+    </nav>
+    <div class="sidebar-foot">
+      <button id="btn-refresh" class="btn">↻ 刷新数据</button>
+      <div id="refresh-status" class="muted small"></div>
+    </div>
+  </aside>
+
+  <main id="main">
+    <!-- 总览 -->
+    <section id="tab-overview" class="tab active">
+      <div class="cards" id="ov-cards"></div>
+      <div class="card"><h3>打分卡（四维信号 → 0-100 分）</h3>
+        <div class="table-wrap" id="ov-scorecard"></div></div>
+      <div class="grid-2">
+        <div class="card"><h3>组合目标权重</h3><div id="ov-pie" class="chart-lg"></div></div>
+        <div class="card"><h3>预警与数据源</h3>
+          <div id="ov-alerts"></div>
+          <div id="ov-sources"></div></div>
+      </div>
+    </section>
+
+    <!-- 估值 -->
+    <section id="tab-valuation" class="tab">
+      <div class="card"><h3>当前估值分位（近10年）</h3><div id="val-bars" class="chart-md" style="height:460px"></div></div>
+      <div class="card"><h3>估值历史（月度）</h3>
+        <select id="val-select" class="select"></select>
+        <div id="val-hist" class="chart-md"></div></div>
+    </section>
+
+    <!-- 趋势 -->
+    <section id="tab-trend" class="tab">
+      <div class="grid-2">
+        <div class="card"><h3>12-1 月动量排名</h3><div id="tr-mom" class="chart-md"></div></div>
+        <div class="card"><h3>200 日均线位置</h3><div class="table-wrap" id="tr-table"></div></div>
+      </div>
+      <div class="card"><h3>价格 vs 200日线</h3>
+        <select id="tr-select" class="select"></select>
+        <div id="tr-chart" class="chart-lg"></div></div>
+    </section>
+
+    <!-- 资金面 -->
+    <section id="tab-flows" class="tab">
+      <div class="grid-2">
+        <div class="card"><h3>两融余额指数（3年）</h3><div id="fl-margin" class="chart-md"></div>
+          <p class="muted small" id="fl-note"></p></div>
+        <div class="card"><h3>量能比（20日/120日均额）</h3><div id="fl-vol" class="chart-md"></div></div>
+      </div>
+      <div class="card"><h3>QDII 溢价监控</h3><div class="table-wrap" id="fl-prem"></div></div>
+    </section>
+
+    <!-- 宏观 -->
+    <section id="tab-macro" class="tab">
+      <div class="grid-2">
+        <div class="card"><h3>制造业 PMI（50 荣枯线）</h3><div id="ma-pmi" class="chart-sm"></div></div>
+        <div class="card"><h3>M1-M2 剪刀差（%）</h3><div id="ma-gap" class="chart-sm"></div></div>
+        <div class="card"><h3>PPI 同比（%）</h3><div id="ma-ppi" class="chart-sm"></div></div>
+        <div class="card"><h3>美债 10Y 收益率（%）</h3><div id="ma-us10y" class="chart-sm"></div></div>
+      </div>
+      <div class="card"><h3>标普500 席勒 PE（全历史）</h3><div id="ma-shiller" class="chart-md"></div></div>
+    </section>
+
+    <!-- 策略 -->
+    <section id="tab-strategy" class="tab">
+      <div class="cards" id="st-cards"></div>
+      <div class="card"><h3>本月定投计划</h3>
+        <label>每月定投总额（元）：<input id="st-monthly" type="number" value="10000" class="input-sm"></label>
+        <div class="table-wrap" id="st-dca"></div></div>
+      <div class="card"><h3>目标权重与操作</h3><div class="table-wrap" id="st-weights"></div></div>
+      <div class="card"><h3>调仓说明</h3><ul id="st-notes" class="notes"></ul></div>
+    </section>
+
+    <!-- 持仓 -->
+    <section id="tab-portfolio" class="tab">
+      <div class="cards" id="pf-cards"></div>
+      <div class="card"><h3>我的持仓（编辑后点保存）</h3>
+        <div class="table-wrap" id="pf-table"></div>
+        <div class="row-actions">
+          <button id="pf-add" class="btn">+ 添加一行</button>
+          <button id="pf-save" class="btn primary">保存持仓</button>
+        </div></div>
+      <div class="card"><h3>再平衡计算器</h3><div class="table-wrap" id="pf-rebal"></div>
+        <p class="muted small" id="pf-note"></p></div>
+    </section>
+
+    <!-- 回测 -->
+    <section id="tab-backtest" class="tab">
+      <div class="card"><h3>策略净值对比（月度调仓）</h3>
+        <div class="row-actions"><button id="bt-run" class="btn">▶ 运行回测</button><span id="bt-status" class="muted small"></span></div>
+        <div id="bt-curves" class="chart-lg"></div></div>
+      <div class="grid-2">
+        <div class="card"><h3>核心指标</h3><div class="table-wrap" id="bt-metrics"></div></div>
+        <div class="card"><h3>分年度收益</h3><div class="table-wrap" id="bt-yearly"></div></div>
+      </div>
+      <p class="muted small" id="bt-note"></p>
+    </section>
+
+    <!-- 报告 -->
+    <section id="tab-report" class="tab">
+      <div class="card"><div id="rp-md" class="md"></div></div>
+    </section>
+  </main>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
