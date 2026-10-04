@@ -183,8 +183,8 @@ async function renderFlows() {
     chart("fl-margin").setOption({ backgroundColor: "transparent", tooltip: { trigger: "axis" },
       grid: { left: 80, right: 16 },
       xAxis: { type: "time", ...AXIS }, yAxis: { type: "value", scale: true, ...AXIS,
-        axisLabel: { color: "#7d8b9c", formatter: (v) => (v / 100000000).toFixed(1) + "亿" } },
-      series: [{ type: "line", name: "两融余额指数", showSymbol: false, data: d.margin_index,
+        axisLabel: { color: "#7d8b9c", formatter: (v) => v.toLocaleString() } },
+      series: [{ type: "line", name: "两融余额", showSymbol: false, data: d.margin_index,
         lineStyle: { color: "#4cc9f0" }, areaStyle: { opacity: 0.08 } }] });
   } else {
     $("#fl-margin").innerHTML = sys.tushare_configured ?

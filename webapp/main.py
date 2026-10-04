@@ -122,7 +122,7 @@ def api_watchlist():
         if len(df) >= 2:
             s = df.sort_values("trade_date")["close"].astype(float)
             base, chg1m = float(s.iloc[-1]), round((float(s.iloc[-1]) / float(s.iloc[0]) - 1) * 100, 2)
-            pdate = df["trade_date"].iloc[-1]
+            pdate = df["trade_date"].iloc[0]  # DESC 序首行即最新
         navdf = store.read_df("fund_nav", f"ts_code LIKE '{code}%'", order="nav_date DESC").head(25)
         if len(navdf) >= 2 and base is None:
             s = navdf.sort_values("nav_date")["unit_nav"].astype(float)
@@ -292,8 +292,12 @@ def api_flows():
     if not margin.empty:
         s = margin.set_index("trade_date")["rzye"].astype(float)
         s.index = pd.to_datetime(s.index)
+        s = s.last("3Y")
+        # 丢弃末尾不完整行（当日仅单交易所披露时余额约为正常值一半）
+        if len(s) >= 6 and s.iloc[-1] < s.iloc[-6:-1].median() * 0.7:
+            s = s.iloc[:-1]
         margin_series = [[d.strftime("%Y-%m-%d"), round(v / 1e8, 1)]
-                         for d, v in s.last("3Y").items()]
+                         for d, v in s.items()]
     out_prem = []
     for _, r in prem.iterrows():
         out_prem.append({"code": r["ts_code"], "name": r["name"], "premium": r["premium"],
