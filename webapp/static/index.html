@@ -118,7 +118,19 @@
     <!-- 回测 -->
     <section id="tab-backtest" class="tab">
       <div class="card"><h3>策略净值对比（月度调仓）</h3>
-        <div class="row-actions"><button id="bt-run" class="btn">▶ 运行回测</button><span id="bt-status" class="muted small"></span></div>
+        <div class="row-actions" style="flex-wrap:wrap; gap:10px">
+          <label class="small">开始 <input type="month" id="bt-start" class="input-sm" min="2013-01" value="2015-01"></label>
+          <label class="small">结束 <input type="month" id="bt-end" class="input-sm" min="2013-01" title="留空 = 最新"></label>
+          <button id="bt-run" class="btn primary">▶ 运行回测</button>
+          <span id="bt-status" class="muted small"></span>
+        </div>
+        <div class="row-actions" style="gap:6px">
+          <span class="muted small">快捷：</span>
+          <button class="btn bt-preset" data-s="2015-01">全部(2015起)</button>
+          <button class="btn bt-preset" data-s="2020-01">近6年</button>
+          <button class="btn bt-preset" data-s="2022-01">近5年</button>
+          <button class="btn bt-preset" data-s="2024-01">近3年</button>
+        </div>
         <div id="bt-curves" class="chart-lg"></div></div>
       <div class="grid-2">
         <div class="card"><h3>核心指标</h3><div class="table-wrap" id="bt-metrics"></div></div>

@@ -346,18 +346,35 @@ def api_report():
 
 
 @app.get("/api/backtest")
-def api_backtest():
-    p = config.OUTPUT_DIR / "backtest.json"
-    if not p.exists():
-        return JSONResponse({"error": "尚未运行回测，请点击“运行回测”"}, status_code=404)
+def api_backtest(start: str = "", end: str = ""):
+    """读取回测结果：指定区间时优先读区间缓存文件，否则返回最近一次运行。"""
     import json
-    return json.loads(p.read_text(encoding="utf-8"))
+    path = None
+    if start:
+        s = pd.Timestamp(start).strftime("%Y%m")
+        e = pd.Timestamp(end).strftime("%Y%m") if end else pd.Timestamp.today().strftime("%Y%m")
+        cand = config.OUTPUT_DIR / f"backtest_{s}_{e}.json"
+        if cand.exists():
+            path = cand
+    if path is None:
+        path = config.OUTPUT_DIR / "backtest.json"
+    if not path.exists():
+        return JSONResponse({"error": "尚未运行回测，请点击“运行回测”"}, status_code=404)
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 @app.post("/api/backtest/run")
-def api_backtest_run():
+def api_backtest_run(body: dict | None = None):
+    body = body or {}
+    start = str(body.get("start") or config.BACKTEST_START)
+    end = str(body.get("end")) if body.get("end") else None
+    # 校验与夹取：最早 2013-01（数据自2010，预热后信号成熟）；end >= start
+    if pd.Timestamp(start) < pd.Timestamp("2013-01-01"):
+        start = "2013-01"
+    if end and pd.Timestamp(end) < pd.Timestamp(start):
+        return JSONResponse({"error": "结束日期早于开始日期"}, status_code=400)
     from src import backtest
-    result = backtest.run(verbose=False)
+    result = backtest.run(start=start, end=end, verbose=False)
     return {k: v for k, v in result.items() if k != "weights_history"}
 
 

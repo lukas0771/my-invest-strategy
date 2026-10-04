@@ -36,8 +36,12 @@ def _plan_at(t: pd.Timestamp, px_hist: pd.DataFrame) -> dict | None:
     return scorer.build_plan(sigs)
 
 
-def run(start: str = config.BACKTEST_START, verbose: bool = True) -> dict:
-    px = load_price_matrix(start)
+def run(start: str = config.BACKTEST_START, end: str | None = None, verbose: bool = True) -> dict:
+    """自选区间回测。start 为交易起点；数据加载会向 earlier 预热约4年，
+    保证起点当月的估值分位/均线信号仍有效（否则信号会退化）。"""
+    start_ts = pd.Timestamp(start)
+    warmup = max(pd.Timestamp("2010-01-01"), start_ts - pd.DateOffset(years=4))
+    px = load_price_matrix(warmup.strftime("%Y-%m-%d"))
     if px.empty:
         raise RuntimeError("无价格数据，请先执行数据刷新")
     rets = px.pct_change(fill_method=None)
@@ -45,7 +49,11 @@ def run(start: str = config.BACKTEST_START, verbose: bool = True) -> dict:
     # 每月最后一个"实际交易日"（resample 的日历月末大多不是交易日，会 KeyError）
     month_ends = pd.DatetimeIndex(
         px.index.to_series().groupby(px.index.to_period("M")).max().sort_values())
-    month_ends = month_ends[month_ends >= px.index[0]]
+    month_ends = month_ends[month_ends >= start_ts]
+    if end:
+        month_ends = month_ends[month_ends <= pd.Timestamp(end)]
+    if len(month_ends) < 7:
+        raise RuntimeError(f"回测区间太短（{start} ~ {end or '最新'}），至少需要约6个月")
 
     strategies = {"score_card": [], "core_fixed": [], "hs300_bh": [], "sixty_forty": []}
     dates_out, weights_out = [], []
@@ -102,7 +110,9 @@ def run(start: str = config.BACKTEST_START, verbose: bool = True) -> dict:
     result = {
         "generated_at": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M"),
         "start": month_ends[0].strftime("%Y-%m"), "end": month_ends[-1].strftime("%Y-%m"),
-        "note": "指数层面月度调仓模拟：不含申赎费/跟踪误差/汇率损益；信号仅用调仓月末及以前数据",
+        "range": {"start": start, "end": end or "最新"},
+        "note": "指数层面月度调仓模拟：不含申赎费/跟踪误差/汇率损益；信号仅用调仓月末及以前数据"
+                f"（数据自 {warmup.strftime('%Y-%m')} 预热，起点当月信号已成熟）",
         "strategies": {k: metrics(v) for k, v in strategies.items()},
         "strategy_names": {"score_card": "四维打分卡(核心-卫星+估值上限)",
                            "core_fixed": "核心固定(无卫星/无择时)",
@@ -112,6 +122,10 @@ def run(start: str = config.BACKTEST_START, verbose: bool = True) -> dict:
     out = config.OUTPUT_DIR / "backtest.json"
     out.parent.mkdir(exist_ok=True)
     out.write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")
+    # 区间缓存：同一区间重复回测直接读文件
+    tag = f"{month_ends[0].strftime('%Y%m')}_{month_ends[-1].strftime('%Y%m')}"
+    (config.OUTPUT_DIR / f"backtest_{tag}.json").write_text(
+        json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")
     if verbose:
         for k, m in result["strategies"].items():
             print(f"  {k:12s} 年化{m['cagr']:+.1%} 回撤{m['max_drawdown']:.1%} "

@@ -329,7 +329,7 @@ async function renderBacktest() {
   } catch { $("#bt-status").textContent = "尚未运行，点击按钮开始"; }
 }
 function drawBacktest(d) {
-  $("#bt-note").textContent = d.note;
+  $("#bt-note").textContent = `区间 ${d.start} ~ ${d.end} ｜ ${d.note}`;
   const c = chart("bt-curves");
   const colors = ["#4cc9f0", "#f5a524", "#e5484d", "#2fbf71"];
   c.setOption({ backgroundColor: "transparent", color: colors, tooltip: { trigger: "axis" },
@@ -353,11 +353,23 @@ function drawBacktest(d) {
     }).join("")}</tr>`).join("");
   $("#bt-yearly").innerHTML = `<table>${head}${body}</table>`;
 }
-$("#bt-run")?.addEventListener("click", async () => {
-  $("#bt-status").textContent = "回测运行中（约1分钟）…";
-  try { const d = await api("/api/backtest/run", { method: "POST" }); drawBacktest(d); $("#bt-status").textContent = "完成"; }
-  catch (e) { $("#bt-status").textContent = "失败: " + e.message; }
-});
+async function runBacktest(start, end) {
+  $("#bt-status").textContent = "回测运行中（长区间约1-2分钟）…";
+  try {
+    const d = await api("/api/backtest/run", { method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ start, end: end || null }) });
+    drawBacktest(d);
+    $("#bt-status").textContent = `完成：${d.start} ~ ${d.end}（${d.strategies.score_card.months} 个月）`;
+  } catch (e) { $("#bt-status").textContent = "失败: " + e.message; }
+}
+$("#bt-run")?.addEventListener("click", () =>
+  runBacktest($("#bt-start").value || "2015-01", $("#bt-end").value));
+$$(".bt-preset").forEach(el => el.addEventListener("click", () => {
+  $("#bt-start").value = el.dataset.s;
+  $("#bt-end").value = "";
+  runBacktest(el.dataset.s, null);
+}));
 
 /* ---------------- 报告 ---------------- */
 function md2html(md) {
