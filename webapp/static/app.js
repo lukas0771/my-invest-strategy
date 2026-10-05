@@ -110,12 +110,17 @@ function switchTab(name) {
 async function renderValuation() {
   const { valuation } = await api("/api/valuation");
   const withPct = valuation.filter(v => v.pct !== null);
-  const names = withPct.map(v => v.name);
+  const names = withPct.map(v => v.type === "价格分位" ? v.name + "＊" : v.name);
   const pcts = withPct.map(v => +(v.pct * 100).toFixed(1));
   const colors = withPct.map(v => v.pct < 0.2 ? "#2E9E63" : v.pct < 0.4 ? "#7AB88F" :
     v.pct < 0.6 ? "#5B6EAE" : v.pct < 0.8 ? "#D9A441" : "#B3402E");
   chart("val-bars").setOption({ backgroundColor: "transparent",
-    tooltip: { formatter: p => `${p.name}：${p.value}% 分位` }, grid: { left: 90 },
+    tooltip: { formatter: (p) => {
+      const v = withPct[p.dataIndex];
+      const basis = v.type === "价格分位" ? "无官方长期PE，用价格分位近似" :
+        (v.type === "shiller" ? "席勒PE" : "PE-TTM");
+      return `${v.name}：${p.value}% 分位<br/><span style="color:#8A8779">口径：${basis}</span>`;
+    } }, grid: { left: 90 },
     xAxis: { type: "value", max: 100, ...AXIS, splitLine: { lineStyle: { color: "#EFECE4" } } },
     yAxis: { type: "category", data: names, inverse: true, ...AXIS },
     series: [{ type: "bar", data: pcts.map((p, i) => ({ value: p, itemStyle: { color: colors[i] } })),
@@ -124,9 +129,10 @@ async function renderValuation() {
   sel.innerHTML = valuation.map(v => `<option value="${v.name}">${v.name}</option>`).join("");
   const draw = () => {
     const v = valuation.find(x => x.name === sel.value);
+    const label = v.type === "pe_ttm" ? "PE-TTM" : (v.type === "shiller" ? "席勒PE" : "价格（分位口径）");
     chart("val-hist").setOption({ backgroundColor: "transparent", tooltip: { trigger: "axis" },
       xAxis: { type: "time", ...AXIS }, yAxis: { type: "value", scale: true, ...AXIS },
-      series: [{ type: "line", name: v.type === "shiller" ? "席勒PE" : "PE-TTM", showSymbol: false,
+      series: [{ type: "line", name: label, showSymbol: false,
         data: v.history, lineStyle: { color: "#4A7DB5" }, areaStyle: { opacity: 0.08 } }] });
   };
   sel.onchange = draw; draw();
@@ -423,18 +429,18 @@ $("#btn-refresh")?.addEventListener("click", async () => {
 
 /* ---------------- 新闻 ---------------- */
 function newsListHtml(items) {
-  if (!items || !items.length) return '<p class="muted">暂无新闻数据（数据源不可用或未刷新）。</p>';
+  if (!items || !items.length) return '<p class="muted">暂无新闻（数据源不可用）。只收录带原文链接的条目，宁缺毋滥。</p>';
   return items.map(n => `<div class="nw-item">
-    <div class="nw-title">${n.title}</div>
-    <div class="nw-sum">${n.summary}</div>
+    <div class="nw-title"><a href="${n.url}" target="_blank" rel="noopener">${n.title}</a></div>
+    ${n.summary ? `<div class="nw-sum">${n.summary}</div>` : ""}
     <div class="nw-meta">${n.time} · ${n.source}</div></div>`).join("");
 }
 async function renderNews() {
   const d = await api("/api/news");
-  $("#nw-src").textContent = d.source ? `财经新闻（来源：${d.source}）` : "财经新闻";
+  $("#nw-src").textContent = (d.sources && d.sources.length) ?
+    `财经新闻（点击标题跳转原文 · 来源：${d.sources.join(" + ")}）` : "财经新闻";
   $("#nw-list").innerHTML = newsListHtml(d.items);
-  $("#ov-news").innerHTML = newsListHtml((d.items || []).slice(0, 5)) ||
-    '<p class="muted">暂无数据</p>';
+  $("#ov-news").innerHTML = newsListHtml((d.items || []).slice(0, 5));
 }
 
 /* ---------------- 自选清单 ---------------- */

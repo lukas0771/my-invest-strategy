@@ -105,7 +105,7 @@ def api_news():
     try:
         return get_news()
     except Exception as e:  # noqa: BLE001
-        return {"source": "", "items": [], "error": str(e)[:100]}
+        return {"sources": [], "items": [], "error": str(e)[:100]}
 
 
 # ---------------------------------------------------------------- 自选清单
