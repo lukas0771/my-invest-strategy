@@ -20,10 +20,10 @@ function zoneBadge(z, pct) {
 function chart(id) {
   if (charts[id]) charts[id].dispose();
   const el = document.getElementById(id);
-  charts[id] = echarts.init(el, "dark");
+  charts[id] = echarts.init(el);
   return charts[id];
 }
-const AXIS = { axisLine: { lineStyle: { color: "#2a3644" } }, axisLabel: { color: "#7d8b9c" } };
+const AXIS = { axisLine: { lineStyle: { color: "#D8D2C4" } }, axisLabel: { color: "#8A8779" } };
 
 /* ---------------- 导航 ---------------- */
 $("#nav").addEventListener("click", async (e) => {
@@ -82,12 +82,12 @@ async function renderOverview() {
     <th>趋势</th><th>资金</th><th>宏观</th><th>总分</th><th>目标权重</th><th>建议</th></tr>${rows}</table>`;
   const pie = chart("ov-pie");
   pie.setOption({ backgroundColor: "transparent", color: CHART_COLORS, tooltip: { trigger: "item", formatter: "{b}: {c}%" },
-    legend: { bottom: 0, textStyle: { color: "#7d8b9c", fontSize: 11 },
-      type: "scroll", pageIconColor: "#4cc9f0" },
+    legend: { bottom: 0, textStyle: { color: "#8A8779", fontSize: 11 },
+      type: "scroll", pageIconColor: "#C96342" },
     series: [{ type: "pie", radius: ["38%", "68%"], center: ["50%", "44%"],
       data: data.assets.filter(a => a.target_weight > 0).map(a => ({ name: a.name, value: a.target_weight })),
-      label: { color: "#dbe4ee", fontSize: 11, formatter: "{b} {c}%" },
-      itemStyle: { borderColor: "#11161d", borderWidth: 1 } }] });
+      label: { color: "#3D3929", fontSize: 11, formatter: "{b} {c}%" },
+      itemStyle: { borderColor: "#FFFFFF", borderWidth: 1 } }] });
   // 预警 + 数据源健康
   $("#ov-alerts").innerHTML = sum.alerts.length ?
     `<ul class="notes">${sum.alerts.map(a => `<li><b>${a.asset}</b>：${a.text}</li>`).join("")}</ul>` :
@@ -101,7 +101,7 @@ async function renderOverview() {
       <span class="src-target">${s.target}</span>
       <span class="muted small">${s.source} · ${s.ts.slice(5, 16)}</span></div>`).join("")}`;
 }
-const CHART_COLORS = ["#4cc9f0", "#2fbf71", "#f5a524", "#e5484d", "#b388ff", "#26c6da", "#ef9a9a", "#9ccc65", "#ffb74d", "#4db6ac", "#7986cb", "#f06292"];
+const CHART_COLORS = ["#C96342", "#5B6EAE", "#3E8E7E", "#D9A441", "#9A6B8A", "#4A7DB5", "#7A9A6D", "#B3402E", "#8A8779", "#2E9E63", "#D97757", "#6B8CC9"];
 function switchTab(name) {
   document.querySelector(`#nav a[data-tab="${name}"]`)?.click();
 }
@@ -112,14 +112,14 @@ async function renderValuation() {
   const withPct = valuation.filter(v => v.pct !== null);
   const names = withPct.map(v => v.name);
   const pcts = withPct.map(v => +(v.pct * 100).toFixed(1));
-  const colors = withPct.map(v => v.pct < 0.2 ? "#2fbf71" : v.pct < 0.4 ? "#6bd089" :
-    v.pct < 0.6 ? "#7fb3e0" : v.pct < 0.8 ? "#f5a524" : "#e5484d");
+  const colors = withPct.map(v => v.pct < 0.2 ? "#2E9E63" : v.pct < 0.4 ? "#7AB88F" :
+    v.pct < 0.6 ? "#5B6EAE" : v.pct < 0.8 ? "#D9A441" : "#B3402E");
   chart("val-bars").setOption({ backgroundColor: "transparent",
     tooltip: { formatter: p => `${p.name}：${p.value}% 分位` }, grid: { left: 90 },
-    xAxis: { type: "value", max: 100, ...AXIS, splitLine: { lineStyle: { color: "#18222d" } } },
+    xAxis: { type: "value", max: 100, ...AXIS, splitLine: { lineStyle: { color: "#EFECE4" } } },
     yAxis: { type: "category", data: names, inverse: true, ...AXIS },
     series: [{ type: "bar", data: pcts.map((p, i) => ({ value: p, itemStyle: { color: colors[i] } })),
-      label: { show: true, position: "right", color: "#dbe4ee", formatter: "{c}%" } }] });
+      label: { show: true, position: "right", color: "#3D3929", formatter: "{c}%" } }] });
   const sel = $("#val-select");
   sel.innerHTML = valuation.map(v => `<option value="${v.name}">${v.name}</option>`).join("");
   const draw = () => {
@@ -127,7 +127,7 @@ async function renderValuation() {
     chart("val-hist").setOption({ backgroundColor: "transparent", tooltip: { trigger: "axis" },
       xAxis: { type: "time", ...AXIS }, yAxis: { type: "value", scale: true, ...AXIS },
       series: [{ type: "line", name: v.type === "shiller" ? "席勒PE" : "PE-TTM", showSymbol: false,
-        data: v.history, lineStyle: { color: "#4cc9f0" }, areaStyle: { opacity: 0.08 } }] });
+        data: v.history, lineStyle: { color: "#4A7DB5" }, areaStyle: { opacity: 0.08 } }] });
   };
   sel.onchange = draw; draw();
 }
@@ -139,9 +139,9 @@ async function renderTrend() {
   const mom = trend.map(t => t.momentum === null ? 0 : +(t.momentum * 100).toFixed(1));
   chart("tr-mom").setOption({ backgroundColor: "transparent", tooltip: { formatter: p => `${p.name}: ${p.value}%` },
     grid: { left: 90 },
-    xAxis: { type: "value", ...AXIS, splitLine: { lineStyle: { color: "#18222d" } } },
+    xAxis: { type: "value", ...AXIS, splitLine: { lineStyle: { color: "#EFECE4" } } },
     yAxis: { type: "category", data: names, ...AXIS },
-    series: [{ type: "bar", data: mom.map(v => ({ value: v, itemStyle: { color: v >= 0 ? "#2fbf71" : "#e5484d" } })) }] });
+    series: [{ type: "bar", data: mom.map(v => ({ value: v, itemStyle: { color: v >= 0 ? "#C0392B" : "#2E9E63" } })) }] });
   $("#tr-table").innerHTML = `<table><tr><th>资产</th><th>200日线上?</th><th>趋势分</th><th>动量排名</th></tr>` +
     trend.map(t => `<tr><td>${t.name}</td>
       <td>${t.above_ma200 === null ? "—" : (t.above_ma200 ? '<span class="pos">是</span>' : '<span class="neg">否</span>')}</td>
@@ -152,7 +152,7 @@ async function renderTrend() {
     const t = trend.find(x => x.key === sel.value);
     const c = chart("tr-chart");
     const base = { backgroundColor: "transparent", tooltip: { trigger: "axis" },
-      legend: { textStyle: { color: "#7d8b9c" }, top: 0 },
+      legend: { textStyle: { color: "#8A8779" }, top: 0 },
       xAxis: { type: "category", data: t.kline.dates, ...AXIS },
       yAxis: { type: "value", scale: true, ...AXIS },
       dataZoom: [{ type: "inside", start: 55, end: 100 }, { type: "slider", start: 55, end: 100, height: 18, bottom: 4 }],
@@ -160,16 +160,16 @@ async function renderTrend() {
     if (t.kline.mode === "candle") {
       base.series = [
         { name: "K线", type: "candlestick", data: t.kline.kline,
-          itemStyle: { color: "#e05656", color0: "#2fbf71", borderColor: "#e05656", borderColor0: "#2fbf71" } },
-        { name: "MA20", type: "line", data: t.kline.ma20, showSymbol: false, lineStyle: { color: "#f5a524", width: 1 } },
-        { name: "MA60", type: "line", data: t.kline.ma60, showSymbol: false, lineStyle: { color: "#4cc9f0", width: 1 } },
-        { name: "MA200", type: "line", data: t.kline.ma200, showSymbol: false, lineStyle: { color: "#b388ff", width: 1.4 } }];
+          itemStyle: { color: "#C0392B", color0: "#2E9E63", borderColor: "#C0392B", borderColor0: "#2E9E63" } },
+        { name: "MA20", type: "line", data: t.kline.ma20, showSymbol: false, lineStyle: { color: "#D9A441", width: 1 } },
+        { name: "MA60", type: "line", data: t.kline.ma60, showSymbol: false, lineStyle: { color: "#4A7DB5", width: 1 } },
+        { name: "MA200", type: "line", data: t.kline.ma200, showSymbol: false, lineStyle: { color: "#9A6B8A", width: 1.4 } }];
     } else {
       base.series = [
-        { name: "收盘价", type: "line", showSymbol: false, data: t.kline.line, lineStyle: { color: "#4cc9f0" } },
-        { name: "MA20", type: "line", data: t.kline.ma20, showSymbol: false, lineStyle: { color: "#f5a524", width: 1 } },
-        { name: "MA60", type: "line", data: t.kline.ma60, showSymbol: false, lineStyle: { color: "#26c6da", width: 1 } },
-        { name: "MA200", type: "line", data: t.kline.ma200, showSymbol: false, lineStyle: { color: "#b388ff", width: 1.4 } }];
+        { name: "收盘价", type: "line", showSymbol: false, data: t.kline.line, lineStyle: { color: "#4A7DB5" } },
+        { name: "MA20", type: "line", data: t.kline.ma20, showSymbol: false, lineStyle: { color: "#D9A441", width: 1 } },
+        { name: "MA60", type: "line", data: t.kline.ma60, showSymbol: false, lineStyle: { color: "#3E8E7E", width: 1 } },
+        { name: "MA200", type: "line", data: t.kline.ma200, showSymbol: false, lineStyle: { color: "#9A6B8A", width: 1.4 } }];
     }
     c.setOption(base, true);
   };
@@ -183,9 +183,9 @@ async function renderFlows() {
     chart("fl-margin").setOption({ backgroundColor: "transparent", tooltip: { trigger: "axis" },
       grid: { left: 80, right: 16 },
       xAxis: { type: "time", ...AXIS }, yAxis: { type: "value", scale: true, ...AXIS,
-        axisLabel: { color: "#7d8b9c", formatter: (v) => v.toLocaleString() } },
+        axisLabel: { color: "#8A8779", formatter: (v) => v.toLocaleString() } },
       series: [{ type: "line", name: "两融余额", showSymbol: false, data: d.margin_index,
-        lineStyle: { color: "#4cc9f0" }, areaStyle: { opacity: 0.08 } }] });
+        lineStyle: { color: "#4A7DB5" }, areaStyle: { opacity: 0.08 } }] });
   } else {
     $("#fl-margin").innerHTML = sys.tushare_configured ?
       '<p class="muted" style="padding:40px">✓ token 已配置但两融数据为空 —— 点左下「刷新数据」重新拉取；若仍为空，到「自动化」页查看刷新日志中的失败原因。</p>' :
@@ -198,8 +198,8 @@ async function renderFlows() {
       grid: { left: 90 },
       xAxis: { type: "value", ...AXIS }, yAxis: { type: "category", data: vols.map(v => v.name).reverse(), ...AXIS },
       series: [{ type: "bar", data: vols.map(v => ({ value: v.volume_ratio,
-        itemStyle: { color: v.volume_ratio > 1.2 ? "#e5484d" : v.volume_ratio > 1 ? "#f5a524" : "#2fbf71" } })),
-        markLine: { data: [{ xAxis: 1 }], lineStyle: { color: "#7d8b9c" }, label: { formatter: "1.0" } } }] });
+        itemStyle: { color: v.volume_ratio > 1.2 ? "#C0392B" : v.volume_ratio > 1 ? "#D9A441" : "#2E9E63" } })),
+        markLine: { data: [{ xAxis: 1 }], lineStyle: { color: "#8A8779" }, label: { formatter: "1.0" } } }] });
   }
   $("#fl-prem").innerHTML = d.premiums.length ?
     `<table><tr><th>代码</th><th>名称</th><th>溢价率</th><th>状态</th><th>更新</th></tr>` +
@@ -212,19 +212,19 @@ async function renderFlows() {
 /* ---------------- 宏观 ---------------- */
 async function renderMacro() {
   const d = await api("/api/macro");
-  const line = (id, data, ref, color = "#4cc9f0", name = "") => {
+  const line = (id, data, ref, color = "#4A7DB5", name = "") => {
     const c = chart(id);
     const opt = { backgroundColor: "transparent", tooltip: { trigger: "axis" },
       xAxis: { type: "time", ...AXIS }, yAxis: { type: "value", scale: true, ...AXIS },
       series: [{ type: "line", name, showSymbol: false, data, lineStyle: { color } }] };
-    if (ref !== null) opt.series[0].markLine = { data: [{ yAxis: ref }], lineStyle: { color: "#7d8b9c", type: "dashed" }, silent: true };
+    if (ref !== null) opt.series[0].markLine = { data: [{ yAxis: ref }], lineStyle: { color: "#8A8779", type: "dashed" }, silent: true };
     c.setOption(opt);
   };
-  line("ma-pmi", d.pmi, 50, "#4cc9f0", "PMI");
-  line("ma-gap", d.m1_m2_gap, 0, "#f5a524", "M1-M2");
-  line("ma-ppi", d.ppi, 0, "#2fbf71", "PPI");
-  line("ma-us10y", d.us10y, null, "#e5484d", "US10Y");
-  line("ma-shiller", d.shiller, null, "#b388ff", "ShillerPE");
+  line("ma-pmi", d.pmi, 50, "#4A7DB5", "PMI");
+  line("ma-gap", d.m1_m2_gap, 0, "#D9A441", "M1-M2");
+  line("ma-ppi", d.ppi, 0, "#2E9E63", "PPI");
+  line("ma-us10y", d.us10y, null, "#C0392B", "US10Y");
+  line("ma-shiller", d.shiller, null, "#9A6B8A", "ShillerPE");
 }
 
 /* ---------------- 策略 ---------------- */
@@ -331,9 +331,9 @@ async function renderBacktest() {
 function drawBacktest(d) {
   $("#bt-note").textContent = `区间 ${d.start} ~ ${d.end} ｜ ${d.note}`;
   const c = chart("bt-curves");
-  const colors = ["#4cc9f0", "#f5a524", "#e5484d", "#2fbf71"];
+  const colors = ["#C96342", "#5B6EAE", "#B3402E", "#3E8E7E"];
   c.setOption({ backgroundColor: "transparent", color: colors, tooltip: { trigger: "axis" },
-    legend: { textStyle: { color: "#7d8b9c" }, top: 0 },
+    legend: { textStyle: { color: "#8A8779" }, top: 0 },
     xAxis: { type: "time", ...AXIS }, yAxis: { type: "value", scale: true, ...AXIS },
     series: Object.entries(d.strategies).map(([k, m], i) => ({
       name: d.strategy_names[k] || k, type: "line", showSymbol: false,
